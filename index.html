@@ -22,7 +22,7 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{margin:0;background:var(--bg);color:var(--text);padding-bottom:70px;}
-
+ 
   /* ---------- Password gate ---------- */
   #gate{
     position:fixed;inset:0;background:var(--navy);
@@ -43,7 +43,7 @@
     color:#fff;font-size:15px;font-weight:600;cursor:pointer;
   }
   #gate .err{color:var(--red);font-size:12px;margin-top:8px;min-height:14px;}
-
+ 
   .pin-dots{display:flex;justify-content:center;gap:14px;margin:10px 0 6px;}
   .pin-dots .dot{
     width:16px;height:16px;border-radius:50%;border:2px solid var(--navy);background:transparent;
@@ -57,27 +57,27 @@
   }
   .keypad button:active{background:var(--border);}
   .keypad button.empty{background:none;cursor:default;}
-
+ 
   /* ---------- Layout ---------- */
   #app{display:none;max-width:480px;margin:0 auto;padding:14px 12px 10px;}
   header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;}
   header h1{font-size:16px;color:var(--navy);margin:0;}
   header select{padding:8px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;max-width:140px;}
-
+ 
   .card{
     background:var(--card);border:1px solid var(--border);border-radius:12px;
     padding:16px;margin-bottom:14px;
   }
   .card h2{font-size:14px;margin:0 0 12px;color:var(--navy);}
   .card h2 small{color:var(--muted);font-weight:400;font-size:11px;display:block;margin-top:2px;}
-
+ 
   .kpi-row{display:flex;gap:10px;margin-bottom:4px;}
   .kpi{flex:1;background:var(--bg);border-radius:10px;padding:12px;}
   .kpi .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;}
   .kpi .value{font-size:19px;font-weight:700;margin-top:3px;}
   .kpi .value.pos{color:var(--green);}
   .kpi .value.neg{color:var(--red);}
-
+ 
   table{width:100%;border-collapse:collapse;font-size:13px;}
   table th{text-align:left;color:var(--muted);font-weight:600;padding:6px 4px;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;}
   table td{padding:8px 4px;border-bottom:1px solid var(--border);}
@@ -85,11 +85,11 @@
   .amount{font-weight:600;}
   .amount.over{color:var(--red);}
   .amount.ok{color:var(--green);}
-
+ 
   .row-edit{display:flex;gap:6px;align-items:center;}
   .row-edit input{width:70px;padding:6px;border:1px solid var(--border);border-radius:5px;font-size:12px;}
   .row-edit button, .btn-small{padding:6px 10px;border:none;border-radius:5px;background:var(--navy);color:#fff;font-size:11px;cursor:pointer;}
-
+ 
   form.stack{display:flex;flex-direction:column;gap:10px;}
   .field{display:flex;flex-direction:column;gap:4px;}
   .field label{font-size:12px;color:var(--muted);font-weight:600;}
@@ -111,22 +111,22 @@
     opacity:0;transition:opacity .3s;pointer-events:none;z-index:250;white-space:nowrap;
   }
   .toast.show{opacity:1;}
-
+ 
   .filters{display:flex;gap:10px;margin-bottom:12px;}
   .filters select{padding:9px;border:1px solid var(--border);border-radius:8px;font-size:14px;flex:1;}
-
+ 
   .savings-grid{display:flex;flex-direction:column;gap:10px;}
   .savings-item{background:var(--bg);border-radius:8px;padding:10px 12px;}
   .savings-item .label{font-size:12px;color:var(--muted);margin-bottom:4px;}
   .savings-item input{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:16px;}
-
+ 
   .groupe-block{margin-bottom:14px;}
   .groupe-title{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:flex;justify-content:space-between;}
-
+ 
   .recurring-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
   .recurring-item:last-child{border-bottom:none;}
   .recurring-item .count{color:var(--muted);font-size:11px;}
-
+ 
   /* ---------- Bottom nav ---------- */
   nav.bottom{
     position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);
@@ -141,7 +141,7 @@
 </style>
 </head>
 <body>
-
+ 
 <div id="gate">
   <div class="box">
     <h1>Budget Famille</h1>
@@ -166,16 +166,16 @@
     </div>
   </div>
 </div>
-
+ 
 <div id="app">
   <header>
     <h1>Budget Famille</h1>
     <select id="mois-select" onchange="onMoisChange()"></select>
   </header>
-
+ 
   <!-- ================= DASHBOARD ================= -->
   <div id="tab-dashboard">
-
+ 
     <div class="card">
       <h2>➕ Ajouter une transaction</h2>
       <form class="stack" onsubmit="submitTransaction(event)">
@@ -195,32 +195,32 @@
         <button class="btn-primary" type="submit">Ajouter la dépense</button>
       </form>
     </div>
-
+ 
     <div class="kpi-row">
       <div class="kpi"><div class="label">Reste à dépenser</div><div class="value" id="kpi-reste-variable">0 €</div></div>
       <div class="kpi"><div class="label">Épargne potentielle</div><div class="value" id="kpi-epargne-potentielle">0 €</div></div>
     </div>
-
+ 
     <div class="card">
       <h2>Budgets par catégorie <small>dépenses variables du mois</small></h2>
       <table id="table-plafonds"><thead><tr><th>Catégorie</th><th>Dépensé</th><th>Plafond</th></tr></thead><tbody></tbody></table>
     </div>
-
+ 
     <div class="card">
       <h2>Évolution de l'épargne</h2>
       <canvas id="chart-epargne" height="160"></canvas>
     </div>
-
+ 
     <div class="card">
       <h2>Évolution des dépenses variables</h2>
       <canvas id="chart-variable" height="160"></canvas>
     </div>
-
+ 
     <div class="card">
       <h2>Top 10 des dépenses récurrentes</h2>
       <div id="top-recurring-list"></div>
     </div>
-
+ 
     <div class="card">
       <h2>⚠️ Dépense exceptionnelle <small>imputée au compte Antoine</small></h2>
       <form class="stack" onsubmit="submitDepenseExceptionnelle(event)">
@@ -230,9 +230,9 @@
       </form>
       <div id="exc-list" style="margin-top:10px;"></div>
     </div>
-
+ 
   </div>
-
+ 
   <!-- ================= TRANSACTIONS ================= -->
   <div id="tab-transactions" style="display:none;">
     <div class="card">
@@ -248,7 +248,7 @@
       </table>
     </div>
   </div>
-
+ 
   <!-- ================= FRAIS FIXES ================= -->
   <div id="tab-fraisfixes" style="display:none;">
     <div class="card">
@@ -269,7 +269,7 @@
       </form>
     </div>
   </div>
-
+ 
   <!-- ================= REVENUS ================= -->
   <div id="tab-revenus" style="display:none;">
     <div class="card">
@@ -291,7 +291,7 @@
       </form>
     </div>
   </div>
-
+ 
   <!-- ================= ÉPARGNE ================= -->
   <div id="tab-epargne" style="display:none;">
     <div class="card">
@@ -307,9 +307,9 @@
       </form>
     </div>
   </div>
-
+ 
 </div>
-
+ 
 <nav class="bottom" id="bottom-nav" style="display:none;">
   <button class="active" onclick="showTab('dashboard', this)"><span class="icon">🏠</span>Dashboard</button>
   <button onclick="showTab('transactions', this)"><span class="icon">📋</span>Transactions</button>
@@ -317,27 +317,32 @@
   <button onclick="showTab('revenus', this)"><span class="icon">💰</span>Revenus</button>
   <button onclick="showTab('epargne', this)"><span class="icon">📈</span>Épargne</button>
 </nav>
-
+ 
 <div class="toast" id="toast"></div>
-
+ 
 <script>
+window.addEventListener('error', function(e){
+  var el = document.getElementById('pwd-err');
+  if(el){ el.textContent = 'Erreur JS : ' + e.message + ' (ligne ' + e.lineno + ')'; }
+});
+ 
 /* ============================================================
    CONFIGURATION — remplace par l'URL de ton déploiement Apps Script
    ============================================================ */
-const API_URL = https://script.google.com/macros/s/AKfycbzSdhunY6qjaMJMQ56XT1CLaOvsLtDYN1c4EhYvyW-2PLp9FdfU_HAX3FBthf2yZdpqkA/exec";
-
+const API_URL = "https://script.google.com/macros/s/AKfycbzSdhunY6qjaMJMQ56XT1CLaOvsLtDYN1c4EhYvyW-2PLp9FdfU_HAX3FBthf2yZdpqkA/exec";
+ 
 let PASSWORD = "";
 let PIN = "";
 let DATA = null;
 let CURRENT_MOIS = "";
 let chartEpargne = null;
 let chartVariable = null;
-
+ 
 function updatePinDots(){
   const dots = document.querySelectorAll("#pin-dots .dot");
   dots.forEach((d,i)=> d.classList.toggle("filled", i < PIN.length));
 }
-
+ 
 function pinPress(digit){
   if(PIN.length >= 4) return;
   PIN += digit;
@@ -347,17 +352,17 @@ function pinPress(digit){
     tryLogin();
   }
 }
-
+ 
 function pinBackspace(){
   PIN = PIN.slice(0, -1);
   updatePinDots();
 }
-
+ 
 function moisActuel(){
   const d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
 }
-
+ 
 function buildMoisOptions(){
   const sel = document.getElementById("mois-select");
   sel.innerHTML = "";
@@ -371,7 +376,7 @@ function buildMoisOptions(){
     sel.appendChild(opt);
   }
 }
-
+ 
 async function api(action, params={}){
   const url = new URL(API_URL);
   url.searchParams.set("action", action);
@@ -382,7 +387,7 @@ async function api(action, params={}){
   if(json.error){ throw new Error(json.error); }
   return json;
 }
-
+ 
 async function tryLogin(){
   PASSWORD = PIN;
   try{
@@ -401,13 +406,13 @@ async function tryLogin(){
     updatePinDots();
   }
 }
-
+ 
 async function onMoisChange(){
   CURRENT_MOIS = document.getElementById("mois-select").value;
   DATA = await api("getAll", { mois: CURRENT_MOIS });
   renderAll();
 }
-
+ 
 function showTab(name, btn){
   document.querySelectorAll("nav.bottom button").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
@@ -416,21 +421,21 @@ function showTab(name, btn){
   });
   if(name==="transactions") renderTransactions();
 }
-
+ 
 function fmt(n){
   return (Number(n)||0).toLocaleString("fr-FR",{minimumFractionDigits:0, maximumFractionDigits:2}) + " €";
 }
 function cssEscape(s){ return String(s).replace(/[^a-zA-Z0-9]/g,"_"); }
-
+ 
 function toast(msg){
   const t = document.getElementById("toast");
   t.textContent = msg;
   t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"), 2500);
 }
-
+ 
 function refresh(){ return api("getAll", { mois: CURRENT_MOIS }).then(d=>{ DATA=d; renderAll(); }); }
-
+ 
 function renderAll(){
   renderKpis();
   renderPlafonds();
@@ -447,11 +452,11 @@ function renderAll(){
     document.getElementById("tx-date").value = new Date().toISOString().slice(0,10);
   }
 }
-
+ 
 function totalVariable(){ return DATA.transactions.reduce((s,t)=>s+t.montant,0); }
 function totalFixe(){ return DATA.fraisFixes.reduce((s,f)=>s+f.montant,0); }
 function totalExceptionnel(){ return DATA.depensesExceptionnelles.reduce((s,d)=>s+d.montant,0); }
-
+ 
 function totalAntoine(){
   let t = DATA.revenus.salaireAntoine;
   if(DATA.revenus.remboursementCompte === "Antoine") t += DATA.revenus.remboursement;
@@ -464,7 +469,7 @@ function totalHanna(){
   if(DATA.revenus.autreCompte === "Hanna") t += DATA.revenus.autre;
   return t;
 }
-
+ 
 function renderKpis(){
   const resteVariable = totalHanna() - totalVariable();
   const epargnePotentielle = totalAntoine() - totalFixe() - totalExceptionnel();
@@ -475,7 +480,7 @@ function renderKpis(){
   eEl.textContent = fmt(epargnePotentielle);
   eEl.className = "value " + (epargnePotentielle<0 ? "neg":"pos");
 }
-
+ 
 function renderPlafonds(){
   const tbody = document.querySelector("#table-plafonds tbody");
   tbody.innerHTML = "";
@@ -495,7 +500,7 @@ function renderPlafonds(){
     tbody.appendChild(tr);
   });
 }
-
+ 
 function renderCharts(){
   const ctx1 = document.getElementById("chart-epargne");
   const labels1 = DATA.epargneHistory.map(e=>e.mois);
@@ -506,7 +511,7 @@ function renderCharts(){
     data: { labels: labels1, datasets: [{ label:'Épargne totale', data: values1, borderColor:'#1F3864', backgroundColor:'rgba(31,56,100,0.1)', fill:true, tension:0.25 }] },
     options: { plugins:{legend:{display:false}}, scales:{ y:{ ticks:{ callback:v=>v+' €' } } } }
   });
-
+ 
   const ctx2 = document.getElementById("chart-variable");
   const labels2 = DATA.variableHistory.map(e=>e.mois);
   const values2 = DATA.variableHistory.map(e=>e.total);
@@ -517,7 +522,7 @@ function renderCharts(){
     options: { plugins:{legend:{display:false}}, scales:{ y:{ ticks:{ callback:v=>v+' €' } } } }
   });
 }
-
+ 
 function renderTopRecurring(){
   const el = document.getElementById("top-recurring-list");
   el.innerHTML = "";
@@ -531,7 +536,7 @@ function renderTopRecurring(){
     el.innerHTML = '<p style="font-size:13px;color:var(--muted);">Pas encore assez de données.</p>';
   }
 }
-
+ 
 function renderExceptionnelles(){
   const el = document.getElementById("exc-list");
   el.innerHTML = "";
@@ -542,7 +547,7 @@ function renderExceptionnelles(){
     el.appendChild(div);
   });
 }
-
+ 
 function renderFraisFixesGroupes(){
   const container = document.getElementById("groupes-container");
   container.innerHTML = "";
@@ -565,13 +570,13 @@ function renderFraisFixesGroupes(){
     container.innerHTML = '<p style="font-size:13px;color:var(--muted);">Aucun poste pour le moment.</p>';
   }
 }
-
+ 
 function renderGroupeList(){
   const dl = document.getElementById("groupe-list");
   const groupes = [...new Set(DATA.fraisFixes.map(f=>f.groupe))];
   dl.innerHTML = groupes.map(g=>`<option value="${g}">`).join("");
 }
-
+ 
 function renderRevenusForm(){
   document.getElementById("rev-hanna").value = DATA.revenus.salaireHanna || "";
   document.getElementById("rev-antoine").value = DATA.revenus.salaireAntoine || "";
@@ -580,14 +585,14 @@ function renderRevenusForm(){
   document.getElementById("rev-autre").value = DATA.revenus.autre || "";
   document.getElementById("rev-autre-compte").value = DATA.revenus.autreCompte || "Antoine";
 }
-
+ 
 function renderEpargneForm(){
   document.getElementById("ep-trade").value = DATA.epargne.tradeRepublic || "";
   document.getElementById("ep-briks").value = DATA.epargne.briks || "";
   document.getElementById("ep-av").value = DATA.epargne.assuranceVieBourso || "";
   document.getElementById("ep-fonds").value = DATA.epargne.fondsPiloteBourso || "";
 }
-
+ 
 function renderCategoryLists(){
   const catList = document.getElementById("cat-list");
   const subcatList = document.getElementById("subcat-list");
@@ -598,7 +603,7 @@ function renderCategoryLists(){
   subcatList.innerHTML = subcats.map(c=>`<option value="${c}">`).join("");
   filterCat.innerHTML = '<option value="">Toutes les catégories</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join("");
 }
-
+ 
 function renderTransactions(){
   const tbody = document.querySelector("#table-transactions tbody");
   tbody.innerHTML = "";
@@ -612,7 +617,7 @@ function renderTransactions(){
     tbody.appendChild(tr);
   });
 }
-
+ 
 /* ---------- Actions ---------- */
 async function submitTransaction(ev){
   ev.preventDefault();
@@ -630,7 +635,7 @@ async function submitTransaction(ev){
   toast("Dépense ajoutée");
   await refresh();
 }
-
+ 
 async function submitRevenus(ev){
   ev.preventDefault();
   await api("setRevenu", {
@@ -645,7 +650,7 @@ async function submitRevenus(ev){
   toast("Revenus enregistrés");
   await refresh();
 }
-
+ 
 async function submitEpargne(ev){
   ev.preventDefault();
   await api("setEpargne", {
@@ -658,7 +663,7 @@ async function submitEpargne(ev){
   toast("Épargne enregistrée");
   await refresh();
 }
-
+ 
 async function addFraisFixe(ev){
   ev.preventDefault();
   const groupe = document.getElementById("ff-groupe").value.trim().toUpperCase();
@@ -672,20 +677,20 @@ async function addFraisFixe(ev){
   toast("Poste ajouté");
   await refresh();
 }
-
+ 
 async function deleteFraisFixe(groupe, poste){
   await api("deleteFraisFixe", { mois: CURRENT_MOIS, groupe, poste });
   toast("Poste supprimé");
   await refresh();
 }
-
+ 
 async function savePlafond(cat){
   const val = document.getElementById("plafond-" + cssEscape(cat)).value;
   await api("setPlafond", { mois: CURRENT_MOIS, categorie: cat, plafond: val });
   toast("Plafond enregistré");
   await refresh();
 }
-
+ 
 async function submitDepenseExceptionnelle(ev){
   ev.preventDefault();
   const description = document.getElementById("exc-description").value.trim();
