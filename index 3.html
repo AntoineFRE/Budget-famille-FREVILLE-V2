@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Budget Famille</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#1F3864;
+    --navy-light:#2E4C82;
+    --bg:#F3F5F8;
+    --card:#FFFFFF;
+    --border:#E1E5EC;
+    --green:#1E7F4F;
+    --green-bg:#E6F4EC;
+    --red:#B3261E;
+    --red-bg:#FBEAE9;
+    --text:#1C2333;
+    --muted:#6B7686;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;background:var(--bg);color:var(--text);padding-bottom:70px;}
+
+  /* ---------- Password gate ---------- */
+  #gate{
+    position:fixed;inset:0;background:var(--navy);
+    display:flex;align-items:center;justify-content:center;z-index:200;
+  }
+  #gate .box{
+    background:var(--card);padding:32px 24px;border-radius:12px;
+    width:88%;max-width:320px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  #gate h1{font-size:18px;margin:0 0 4px;color:var(--navy);}
+  #gate p{font-size:13px;color:var(--muted);margin:0 0 18px;}
+  #gate input{
+    width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;
+    font-size:16px;margin-bottom:10px;
+  }
+  #gate button{
+    width:100%;padding:12px;border:none;border-radius:8px;background:var(--navy);
+    color:#fff;font-size:15px;font-weight:600;cursor:pointer;
+  }
+  #gate .err{color:var(--red);font-size:12px;margin-top:8px;min-height:14px;}
+
+  .pin-dots{display:flex;justify-content:center;gap:14px;margin:10px 0 6px;}
+  .pin-dots .dot{
+    width:16px;height:16px;border-radius:50%;border:2px solid var(--navy);background:transparent;
+    transition:background .15s;
+  }
+  .pin-dots .dot.filled{background:var(--navy);}
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px;}
+  .keypad button{
+    padding:16px 0;border:none;border-radius:50%;background:var(--bg);color:var(--navy);
+    font-size:20px;font-weight:600;cursor:pointer;
+  }
+  .keypad button:active{background:var(--border);}
+  .keypad button.empty{background:none;cursor:default;}
+
+  /* ---------- Layout ---------- */
+  #app{display:none;max-width:480px;margin:0 auto;padding:14px 12px 10px;}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;}
+  header h1{font-size:16px;color:var(--navy);margin:0;}
+  header select{padding:8px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;max-width:140px;}
+
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:16px;margin-bottom:14px;
+  }
+  .card h2{font-size:14px;margin:0 0 12px;color:var(--navy);}
+  .card h2 small{color:var(--muted);font-weight:400;font-size:11px;display:block;margin-top:2px;}
+
+  .kpi-row{display:flex;gap:10px;margin-bottom:4px;}
+  .kpi{flex:1;background:var(--bg);border-radius:10px;padding:12px;}
+  .kpi .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.02em;}
+  .kpi .value{font-size:19px;font-weight:700;margin-top:3px;}
+  .kpi .value.pos{color:var(--green);}
+  .kpi .value.neg{color:var(--red);}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  table th{text-align:left;color:var(--muted);font-weight:600;padding:6px 4px;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;}
+  table td{padding:8px 4px;border-bottom:1px solid var(--border);}
+  table tr:last-child td{border-bottom:none;}
+  .amount{font-weight:600;}
+  .amount.over{color:var(--red);}
+  .amount.ok{color:var(--green);}
+
+  .row-edit{display:flex;gap:6px;align-items:center;}
+  .row-edit input{width:70px;padding:6px;border:1px solid var(--border);border-radius:5px;font-size:12px;}
+  .row-edit button, .btn-small{padding:6px 10px;border:none;border-radius:5px;background:var(--navy);color:#fff;font-size:11px;cursor:pointer;}
+
+  form.stack{display:flex;flex-direction:column;gap:10px;}
+  .field{display:flex;flex-direction:column;gap:4px;}
+  .field label{font-size:12px;color:var(--muted);font-weight:600;}
+  .field input, .field select{
+    padding:11px 10px;border:1px solid var(--border);border-radius:8px;font-size:16px;
+    background:#fff;width:100%;
+  }
+  .btn-primary{
+    background:var(--navy);color:#fff;border:none;padding:13px;border-radius:8px;
+    font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;width:100%;
+  }
+  .btn-secondary{
+    background:#fff;color:var(--navy);border:1px solid var(--navy);padding:9px 12px;
+    border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;width:100%;
+  }
+  .toast{
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:var(--navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;
+    opacity:0;transition:opacity .3s;pointer-events:none;z-index:250;white-space:nowrap;
+  }
+  .toast.show{opacity:1;}
+
+  .filters{display:flex;gap:10px;margin-bottom:12px;}
+  .filters select{padding:9px;border:1px solid var(--border);border-radius:8px;font-size:14px;flex:1;}
+
+  .savings-grid{display:flex;flex-direction:column;gap:10px;}
+  .savings-item{background:var(--bg);border-radius:8px;padding:10px 12px;}
+  .savings-item .label{font-size:12px;color:var(--muted);margin-bottom:4px;}
+  .savings-item input{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:16px;}
+
+  .groupe-block{margin-bottom:14px;}
+  .groupe-title{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:flex;justify-content:space-between;}
+
+  .recurring-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .recurring-item:last-child{border-bottom:none;}
+  .recurring-item .count{color:var(--muted);font-size:11px;}
+
+  /* ---------- Bottom nav ---------- */
+  nav.bottom{
+    position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);
+    display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav.bottom button{
+    flex:1;background:none;border:none;padding:10px 2px 8px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:10px;
+  }
+  nav.bottom button .icon{font-size:18px;}
+  nav.bottom button.active{color:var(--navy);font-weight:700;}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="box">
+    <h1>Budget Famille</h1>
+    <p>Entre ton code</p>
+    <div class="pin-dots" id="pin-dots">
+      <span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+    <div class="err" id="pwd-err"></div>
+    <div class="keypad">
+      <button onclick="pinPress('1')">1</button>
+      <button onclick="pinPress('2')">2</button>
+      <button onclick="pinPress('3')">3</button>
+      <button onclick="pinPress('4')">4</button>
+      <button onclick="pinPress('5')">5</button>
+      <button onclick="pinPress('6')">6</button>
+      <button onclick="pinPress('7')">7</button>
+      <button onclick="pinPress('8')">8</button>
+      <button onclick="pinPress('9')">9</button>
+      <button class="empty"></button>
+      <button onclick="pinPress('0')">0</button>
+      <button onclick="pinBackspace()">⌫</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <h1>Budget Famille</h1>
+    <select id="mois-select" onchange="onMoisChange()"></select>
+  </header>
+
+  <!-- ================= DASHBOARD ================= -->
+  <div id="tab-dashboard">
+
+    <div class="card">
+      <h2>➕ Ajouter une transaction</h2>
+      <form class="stack" onsubmit="submitTransaction(event)">
+        <div class="field"><label>Montant (€)</label><input type="number" step="0.01" id="tx-montant" required inputmode="decimal"></div>
+        <div class="field"><label>Date</label><input type="date" id="tx-date" required></div>
+        <div class="field">
+          <label>Catégorie</label>
+          <input list="cat-list" id="tx-categorie" placeholder="Choisir ou créer" required>
+          <datalist id="cat-list"></datalist>
+        </div>
+        <div class="field">
+          <label>Sous-catégorie</label>
+          <input list="subcat-list" id="tx-souscategorie" placeholder="Choisir ou créer">
+          <datalist id="subcat-list"></datalist>
+        </div>
+        <div class="field"><label>Description / Magasin</label><input type="text" id="tx-description"></div>
+        <button class="btn-primary" type="submit">Ajouter la dépense</button>
+      </form>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">Reste à dépenser</div><div class="value" id="kpi-reste-variable">0 €</div></div>
+      <div class="kpi"><div class="label">Épargne potentielle</div><div class="value" id="kpi-epargne-potentielle">0 €</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Budgets par catégorie <small>dépenses variables du mois</small></h2>
+      <table id="table-plafonds"><thead><tr><th>Catégorie</th><th>Dépensé</th><th>Plafond</th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div class="card">
+      <h2>Évolution de l'épargne</h2>
+      <canvas id="chart-epargne" height="160"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>Évolution des dépenses variables</h2>
+      <canvas id="chart-variable" height="160"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>Top 10 des dépenses récurrentes</h2>
+      <div id="top-recurring-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>⚠️ Dépense exceptionnelle <small>imputée au compte Antoine</small></h2>
+      <form class="stack" onsubmit="submitDepenseExceptionnelle(event)">
+        <div class="field"><label>Description</label><input type="text" id="exc-description" required></div>
+        <div class="field"><label>Montant (€)</label><input type="number" step="0.01" id="exc-montant" required inputmode="decimal"></div>
+        <button class="btn-primary" type="submit">Ajouter la dépense exceptionnelle</button>
+      </form>
+      <div id="exc-list" style="margin-top:10px;"></div>
+    </div>
+
+  </div>
+
+  <!-- ================= TRANSACTIONS ================= -->
+  <div id="tab-transactions" style="display:none;">
+    <div class="card">
+      <h2>Transactions du mois</h2>
+      <div class="filters">
+        <select id="filter-cat" onchange="renderTransactions()">
+          <option value="">Toutes les catégories</option>
+        </select>
+      </div>
+      <table id="table-transactions">
+        <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Montant</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= FRAIS FIXES ================= -->
+  <div id="tab-fraisfixes" style="display:none;">
+    <div class="card">
+      <h2>Frais fixes par groupe</h2>
+      <div id="groupes-container"></div>
+    </div>
+    <div class="card">
+      <h2>➕ Ajouter un poste</h2>
+      <form class="stack" onsubmit="addFraisFixe(event)">
+        <div class="field">
+          <label>Groupe</label>
+          <input list="groupe-list" id="ff-groupe" placeholder="Ex: HABITATION (existant ou nouveau)" required>
+          <datalist id="groupe-list"></datalist>
+        </div>
+        <div class="field"><label>Poste</label><input type="text" id="ff-poste" placeholder="Ex: Assurance auto" required></div>
+        <div class="field"><label>Montant mensuel (€)</label><input type="number" step="0.01" id="ff-montant" required inputmode="decimal"></div>
+        <button class="btn-primary" type="submit">Ajouter</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= REVENUS ================= -->
+  <div id="tab-revenus" style="display:none;">
+    <div class="card">
+      <h2>Revenus du mois</h2>
+      <form class="stack" onsubmit="submitRevenus(event)">
+        <div class="field"><label>Salaire Hanna</label><input type="number" step="0.01" id="rev-hanna" inputmode="decimal"></div>
+        <div class="field"><label>Salaire Antoine</label><input type="number" step="0.01" id="rev-antoine" inputmode="decimal"></div>
+        <div class="field"><label>Remboursement</label><input type="number" step="0.01" id="rev-remb" inputmode="decimal"></div>
+        <div class="field">
+          <label>Remboursement — sur quel compte ?</label>
+          <select id="rev-remb-compte"><option value="Antoine">Compte Antoine (fixes)</option><option value="Hanna">Compte Hanna (variables)</option></select>
+        </div>
+        <div class="field"><label>Autre</label><input type="number" step="0.01" id="rev-autre" inputmode="decimal"></div>
+        <div class="field">
+          <label>Autre — sur quel compte ?</label>
+          <select id="rev-autre-compte"><option value="Antoine">Compte Antoine (fixes)</option><option value="Hanna">Compte Hanna (variables)</option></select>
+        </div>
+        <button class="btn-primary" type="submit">Enregistrer les revenus</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= ÉPARGNE ================= -->
+  <div id="tab-epargne" style="display:none;">
+    <div class="card">
+      <h2>Épargne &amp; Investissement <small>mise à jour mensuelle</small></h2>
+      <form class="stack" onsubmit="submitEpargne(event)">
+        <div class="savings-grid">
+          <div class="savings-item"><div class="label">Trade Republic</div><input type="number" step="0.01" id="ep-trade" inputmode="decimal"></div>
+          <div class="savings-item"><div class="label">Briks</div><input type="number" step="0.01" id="ep-briks" inputmode="decimal"></div>
+          <div class="savings-item"><div class="label">Assurance vie Bourso</div><input type="number" step="0.01" id="ep-av" inputmode="decimal"></div>
+          <div class="savings-item"><div class="label">Fonds piloté Bourso</div><input type="number" step="0.01" id="ep-fonds" inputmode="decimal"></div>
+        </div>
+        <button class="btn-primary" type="submit">Enregistrer l'épargne</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<nav class="bottom" id="bottom-nav" style="display:none;">
+  <button class="active" onclick="showTab('dashboard', this)"><span class="icon">🏠</span>Dashboard</button>
+  <button onclick="showTab('transactions', this)"><span class="icon">📋</span>Transactions</button>
+  <button onclick="showTab('fraisfixes', this)"><span class="icon">📌</span>Frais fixes</button>
+  <button onclick="showTab('revenus', this)"><span class="icon">💰</span>Revenus</button>
+  <button onclick="showTab('epargne', this)"><span class="icon">📈</span>Épargne</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIGURATION — remplace par l'URL de ton déploiement Apps Script
+   ============================================================ */
+const API_URL = "COLLE_ICI_TON_URL_APPS_SCRIPT";
+
+let PASSWORD = "";
+let PIN = "";
+let DATA = null;
+let CURRENT_MOIS = "";
+let chartEpargne = null;
+let chartVariable = null;
+
+function updatePinDots(){
+  const dots = document.querySelectorAll("#pin-dots .dot");
+  dots.forEach((d,i)=> d.classList.toggle("filled", i < PIN.length));
+}
+
+function pinPress(digit){
+  if(PIN.length >= 4) return;
+  PIN += digit;
+  updatePinDots();
+  document.getElementById("pwd-err").textContent = "";
+  if(PIN.length === 4){
+    tryLogin();
+  }
+}
+
+function pinBackspace(){
+  PIN = PIN.slice(0, -1);
+  updatePinDots();
+}
+
+function moisActuel(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+}
+
+function buildMoisOptions(){
+  const sel = document.getElementById("mois-select");
+  sel.innerHTML = "";
+  const base = new Date(2026,6,1); // juillet 2026
+  for(let i=0;i<12;i++){
+    const d = new Date(base.getFullYear(), base.getMonth()+i, 1);
+    const val = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+    const label = d.toLocaleDateString("fr-FR", {month:"short", year:"numeric"});
+    const opt = document.createElement("option");
+    opt.value = val; opt.textContent = label;
+    sel.appendChild(opt);
+  }
+}
+
+async function api(action, params={}){
+  const url = new URL(API_URL);
+  url.searchParams.set("action", action);
+  url.searchParams.set("password", PASSWORD);
+  for(const k in params){ url.searchParams.set(k, params[k]); }
+  const res = await fetch(url.toString());
+  const json = await res.json();
+  if(json.error){ throw new Error(json.error); }
+  return json;
+}
+
+async function tryLogin(){
+  PASSWORD = PIN;
+  try{
+    const data = await api("getAll", { mois: moisActuel() });
+    document.getElementById("gate").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("bottom-nav").style.display = "flex";
+    buildMoisOptions();
+    document.getElementById("mois-select").value = moisActuel();
+    CURRENT_MOIS = moisActuel();
+    DATA = data;
+    renderAll();
+  }catch(err){
+    document.getElementById("pwd-err").textContent = "Code incorrect.";
+    PIN = "";
+    updatePinDots();
+  }
+}
+
+async function onMoisChange(){
+  CURRENT_MOIS = document.getElementById("mois-select").value;
+  DATA = await api("getAll", { mois: CURRENT_MOIS });
+  renderAll();
+}
+
+function showTab(name, btn){
+  document.querySelectorAll("nav.bottom button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  ["dashboard","transactions","fraisfixes","revenus","epargne"].forEach(t=>{
+    document.getElementById("tab-"+t).style.display = (t===name) ? "block":"none";
+  });
+  if(name==="transactions") renderTransactions();
+}
+
+function fmt(n){
+  return (Number(n)||0).toLocaleString("fr-FR",{minimumFractionDigits:0, maximumFractionDigits:2}) + " €";
+}
+function cssEscape(s){ return String(s).replace(/[^a-zA-Z0-9]/g,"_"); }
+
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 2500);
+}
+
+function refresh(){ return api("getAll", { mois: CURRENT_MOIS }).then(d=>{ DATA=d; renderAll(); }); }
+
+function renderAll(){
+  renderKpis();
+  renderPlafonds();
+  renderCharts();
+  renderTopRecurring();
+  renderExceptionnelles();
+  renderFraisFixesGroupes();
+  renderRevenusForm();
+  renderEpargneForm();
+  renderCategoryLists();
+  renderGroupeList();
+  renderTransactions();
+  if(!document.getElementById("tx-date").value){
+    document.getElementById("tx-date").value = new Date().toISOString().slice(0,10);
+  }
+}
+
+function totalVariable(){ return DATA.transactions.reduce((s,t)=>s+t.montant,0); }
+function totalFixe(){ return DATA.fraisFixes.reduce((s,f)=>s+f.montant,0); }
+function totalExceptionnel(){ return DATA.depensesExceptionnelles.reduce((s,d)=>s+d.montant,0); }
+
+function totalAntoine(){
+  let t = DATA.revenus.salaireAntoine;
+  if(DATA.revenus.remboursementCompte === "Antoine") t += DATA.revenus.remboursement;
+  if(DATA.revenus.autreCompte === "Antoine") t += DATA.revenus.autre;
+  return t;
+}
+function totalHanna(){
+  let t = DATA.revenus.salaireHanna;
+  if(DATA.revenus.remboursementCompte === "Hanna") t += DATA.revenus.remboursement;
+  if(DATA.revenus.autreCompte === "Hanna") t += DATA.revenus.autre;
+  return t;
+}
+
+function renderKpis(){
+  const resteVariable = totalHanna() - totalVariable();
+  const epargnePotentielle = totalAntoine() - totalFixe() - totalExceptionnel();
+  const rEl = document.getElementById("kpi-reste-variable");
+  rEl.textContent = fmt(resteVariable);
+  rEl.className = "value " + (resteVariable<0 ? "neg":"pos");
+  const eEl = document.getElementById("kpi-epargne-potentielle");
+  eEl.textContent = fmt(epargnePotentielle);
+  eEl.className = "value " + (epargnePotentielle<0 ? "neg":"pos");
+}
+
+function renderPlafonds(){
+  const tbody = document.querySelector("#table-plafonds tbody");
+  tbody.innerHTML = "";
+  const depensesParCat = {};
+  DATA.transactions.forEach(t=>{ depensesParCat[t.categorie] = (depensesParCat[t.categorie]||0) + t.montant; });
+  const cats = new Set([...DATA.plafonds.map(p=>p.categorie), ...Object.keys(depensesParCat)]);
+  cats.forEach(cat=>{
+    const plafondObj = DATA.plafonds.find(p=>p.categorie===cat);
+    const plafond = plafondObj ? plafondObj.plafond : 0;
+    const depense = depensesParCat[cat] || 0;
+    const over = plafond>0 && depense>plafond;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${cat}</td>
+      <td class="amount ${over?'over':'ok'}">${fmt(depense)}</td>
+      <td><div class="row-edit"><input type="number" value="${plafond}" id="plafond-${cssEscape(cat)}">
+      <button onclick="savePlafond('${cat.replace(/'/g,"\\'")}')">OK</button></div></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderCharts(){
+  const ctx1 = document.getElementById("chart-epargne");
+  const labels1 = DATA.epargneHistory.map(e=>e.mois);
+  const values1 = DATA.epargneHistory.map(e=>e.total);
+  if(chartEpargne) chartEpargne.destroy();
+  chartEpargne = new Chart(ctx1, {
+    type: 'line',
+    data: { labels: labels1, datasets: [{ label:'Épargne totale', data: values1, borderColor:'#1F3864', backgroundColor:'rgba(31,56,100,0.1)', fill:true, tension:0.25 }] },
+    options: { plugins:{legend:{display:false}}, scales:{ y:{ ticks:{ callback:v=>v+' €' } } } }
+  });
+
+  const ctx2 = document.getElementById("chart-variable");
+  const labels2 = DATA.variableHistory.map(e=>e.mois);
+  const values2 = DATA.variableHistory.map(e=>e.total);
+  if(chartVariable) chartVariable.destroy();
+  chartVariable = new Chart(ctx2, {
+    type: 'line',
+    data: { labels: labels2, datasets: [{ label:'Dépenses variables', data: values2, borderColor:'#B3261E', backgroundColor:'rgba(179,38,30,0.1)', fill:true, tension:0.25 }] },
+    options: { plugins:{legend:{display:false}}, scales:{ y:{ ticks:{ callback:v=>v+' €' } } } }
+  });
+}
+
+function renderTopRecurring(){
+  const el = document.getElementById("top-recurring-list");
+  el.innerHTML = "";
+  DATA.topRecurring.forEach(r=>{
+    const div = document.createElement("div");
+    div.className = "recurring-item";
+    div.innerHTML = `<span>${r.label}</span><span><span class="count">${r.count}x</span> — <strong>${fmt(r.total)}</strong></span>`;
+    el.appendChild(div);
+  });
+  if(DATA.topRecurring.length===0){
+    el.innerHTML = '<p style="font-size:13px;color:var(--muted);">Pas encore assez de données.</p>';
+  }
+}
+
+function renderExceptionnelles(){
+  const el = document.getElementById("exc-list");
+  el.innerHTML = "";
+  DATA.depensesExceptionnelles.forEach(d=>{
+    const div = document.createElement("div");
+    div.className = "recurring-item";
+    div.innerHTML = `<span>${d.description}</span><strong>${fmt(d.montant)}</strong>`;
+    el.appendChild(div);
+  });
+}
+
+function renderFraisFixesGroupes(){
+  const container = document.getElementById("groupes-container");
+  container.innerHTML = "";
+  const groupes = {};
+  DATA.fraisFixes.forEach(f=>{
+    if(!groupes[f.groupe]) groupes[f.groupe] = [];
+    groupes[f.groupe].push(f);
+  });
+  Object.keys(groupes).forEach(g=>{
+    const total = groupes[g].reduce((s,f)=>s+f.montant,0);
+    const block = document.createElement("div");
+    block.className = "groupe-block";
+    let rows = groupes[g].map(f=>`<tr><td>${f.poste}</td><td class="amount">${fmt(f.montant)}</td>
+      <td><button class="btn-small" onclick="deleteFraisFixe('${g.replace(/'/g,"\\'")}','${f.poste.replace(/'/g,"\\'")}')">✕</button></td></tr>`).join("");
+    block.innerHTML = `<div class="groupe-title"><span>${g}</span><span>${fmt(total)}</span></div>
+      <table><tbody>${rows}</tbody></table>`;
+    container.appendChild(block);
+  });
+  if(Object.keys(groupes).length===0){
+    container.innerHTML = '<p style="font-size:13px;color:var(--muted);">Aucun poste pour le moment.</p>';
+  }
+}
+
+function renderGroupeList(){
+  const dl = document.getElementById("groupe-list");
+  const groupes = [...new Set(DATA.fraisFixes.map(f=>f.groupe))];
+  dl.innerHTML = groupes.map(g=>`<option value="${g}">`).join("");
+}
+
+function renderRevenusForm(){
+  document.getElementById("rev-hanna").value = DATA.revenus.salaireHanna || "";
+  document.getElementById("rev-antoine").value = DATA.revenus.salaireAntoine || "";
+  document.getElementById("rev-remb").value = DATA.revenus.remboursement || "";
+  document.getElementById("rev-remb-compte").value = DATA.revenus.remboursementCompte || "Antoine";
+  document.getElementById("rev-autre").value = DATA.revenus.autre || "";
+  document.getElementById("rev-autre-compte").value = DATA.revenus.autreCompte || "Antoine";
+}
+
+function renderEpargneForm(){
+  document.getElementById("ep-trade").value = DATA.epargne.tradeRepublic || "";
+  document.getElementById("ep-briks").value = DATA.epargne.briks || "";
+  document.getElementById("ep-av").value = DATA.epargne.assuranceVieBourso || "";
+  document.getElementById("ep-fonds").value = DATA.epargne.fondsPiloteBourso || "";
+}
+
+function renderCategoryLists(){
+  const catList = document.getElementById("cat-list");
+  const subcatList = document.getElementById("subcat-list");
+  const filterCat = document.getElementById("filter-cat");
+  const cats = [...new Set(DATA.categories.map(c=>c.categorie))];
+  catList.innerHTML = cats.map(c=>`<option value="${c}">`).join("");
+  const subcats = [...new Set(DATA.categories.map(c=>c.sousCategorie).filter(Boolean))];
+  subcatList.innerHTML = subcats.map(c=>`<option value="${c}">`).join("");
+  filterCat.innerHTML = '<option value="">Toutes les catégories</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join("");
+}
+
+function renderTransactions(){
+  const tbody = document.querySelector("#table-transactions tbody");
+  tbody.innerHTML = "";
+  const filter = document.getElementById("filter-cat").value;
+  const list = DATA.transactions
+    .filter(t=>!filter || t.categorie===filter)
+    .sort((a,b)=> b.date.localeCompare(a.date));
+  list.forEach(t=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${t.date.split("-").reverse().join("/")}</td><td>${t.categorie}</td><td>${t.description||""}</td><td class="amount">${fmt(t.montant)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ---------- Actions ---------- */
+async function submitTransaction(ev){
+  ev.preventDefault();
+  const montant = document.getElementById("tx-montant").value;
+  const date = document.getElementById("tx-date").value;
+  const categorie = document.getElementById("tx-categorie").value.trim();
+  const sousCategorie = document.getElementById("tx-souscategorie").value.trim();
+  const description = document.getElementById("tx-description").value;
+  if(!montant || !categorie){ toast("Montant et catégorie requis"); return; }
+  await api("addTransaction", { montant, date, categorie, sousCategorie, description });
+  document.getElementById("tx-montant").value = "";
+  document.getElementById("tx-categorie").value = "";
+  document.getElementById("tx-souscategorie").value = "";
+  document.getElementById("tx-description").value = "";
+  toast("Dépense ajoutée");
+  await refresh();
+}
+
+async function submitRevenus(ev){
+  ev.preventDefault();
+  await api("setRevenu", {
+    mois: CURRENT_MOIS,
+    salaireHanna: document.getElementById("rev-hanna").value || 0,
+    salaireAntoine: document.getElementById("rev-antoine").value || 0,
+    remboursement: document.getElementById("rev-remb").value || 0,
+    remboursementCompte: document.getElementById("rev-remb-compte").value,
+    autre: document.getElementById("rev-autre").value || 0,
+    autreCompte: document.getElementById("rev-autre-compte").value
+  });
+  toast("Revenus enregistrés");
+  await refresh();
+}
+
+async function submitEpargne(ev){
+  ev.preventDefault();
+  await api("setEpargne", {
+    mois: CURRENT_MOIS,
+    tradeRepublic: document.getElementById("ep-trade").value || 0,
+    briks: document.getElementById("ep-briks").value || 0,
+    assuranceVieBourso: document.getElementById("ep-av").value || 0,
+    fondsPiloteBourso: document.getElementById("ep-fonds").value || 0
+  });
+  toast("Épargne enregistrée");
+  await refresh();
+}
+
+async function addFraisFixe(ev){
+  ev.preventDefault();
+  const groupe = document.getElementById("ff-groupe").value.trim().toUpperCase();
+  const poste = document.getElementById("ff-poste").value.trim();
+  const montant = document.getElementById("ff-montant").value;
+  if(!groupe || !poste || !montant){ toast("Tous les champs sont requis"); return; }
+  await api("setFraisFixe", { mois: CURRENT_MOIS, groupe, poste, montant });
+  document.getElementById("ff-groupe").value = "";
+  document.getElementById("ff-poste").value = "";
+  document.getElementById("ff-montant").value = "";
+  toast("Poste ajouté");
+  await refresh();
+}
+
+async function deleteFraisFixe(groupe, poste){
+  await api("deleteFraisFixe", { mois: CURRENT_MOIS, groupe, poste });
+  toast("Poste supprimé");
+  await refresh();
+}
+
+async function savePlafond(cat){
+  const val = document.getElementById("plafond-" + cssEscape(cat)).value;
+  await api("setPlafond", { mois: CURRENT_MOIS, categorie: cat, plafond: val });
+  toast("Plafond enregistré");
+  await refresh();
+}
+
+async function submitDepenseExceptionnelle(ev){
+  ev.preventDefault();
+  const description = document.getElementById("exc-description").value.trim();
+  const montant = document.getElementById("exc-montant").value;
+  if(!description || !montant){ toast("Description et montant requis"); return; }
+  await api("addDepenseExceptionnelle", { mois: CURRENT_MOIS, description, montant });
+  document.getElementById("exc-description").value = "";
+  document.getElementById("exc-montant").value = "";
+  toast("Dépense exceptionnelle ajoutée");
+  await refresh();
+}
+</script>
+</body>
+</html>
