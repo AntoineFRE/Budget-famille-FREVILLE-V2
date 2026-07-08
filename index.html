@@ -228,7 +228,7 @@
         </select>
       </div>
       <table id="table-transactions">
-        <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Montant</th></tr></thead>
+        <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Montant</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -610,9 +610,16 @@ function renderTransactions(){
     .sort((a,b)=> b.date.localeCompare(a.date));
   list.forEach(t=>{
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${t.date.split("-").reverse().join("/")}</td><td>${t.categorie}</td><td>${t.description||""}</td><td class="amount">${fmt(t.montant)}</td>`;
+    tr.innerHTML = `<td>${t.date.split("-").reverse().join("/")}</td><td>${t.categorie}</td><td>${t.description||""}</td><td class="amount">${fmt(t.montant)}</td>
+      <td><button class="btn-small" onclick="deleteTransaction('${t.id}')">✕</button></td>`;
     tbody.appendChild(tr);
   });
+}
+
+async function deleteTransaction(id){
+  await api("deleteTransaction", { id });
+  toast("Transaction supprimée");
+  await refresh();
 }
 
 /* ---------- Actions ---------- */
