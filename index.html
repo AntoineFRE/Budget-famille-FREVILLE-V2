@@ -77,6 +77,7 @@
   .kpi .value{font-size:19px;font-weight:700;margin-top:3px;}
   .kpi .value.pos{color:var(--green);}
   .kpi .value.neg{color:var(--red);}
+  .kpi .value.warn{color:#B8720A;}
 
   table{width:100%;border-collapse:collapse;font-size:13px;}
   table th{text-align:left;color:var(--muted);font-weight:600;padding:6px 4px;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;}
@@ -122,6 +123,10 @@
 
   .groupe-block{margin-bottom:14px;}
   .groupe-title{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:flex;justify-content:space-between;}
+  .groupe-block table{table-layout:fixed;width:100%;}
+  .groupe-block table td:nth-child(1){width:54%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .groupe-block table td:nth-child(2){width:32%;text-align:right;}
+  .groupe-block table td:nth-child(3){width:14%;text-align:center;}
 
   .recurring-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
   .recurring-item:last-child{border-bottom:none;}
@@ -158,13 +163,13 @@
         <div class="field"><label>Date</label><input type="date" id="tx-date" required></div>
         <div class="field">
           <label>Catégorie</label>
-          <input list="cat-list" id="tx-categorie" placeholder="Choisir ou créer" required>
-          <datalist id="cat-list"></datalist>
+          <select id="tx-categorie-select" onchange="handleNewOption('tx-categorie', this.value)"></select>
+          <input type="text" id="tx-categorie" placeholder="Nom de la nouvelle catégorie" style="display:none;margin-top:6px;">
         </div>
         <div class="field">
           <label>Sous-catégorie</label>
-          <input list="subcat-list" id="tx-souscategorie" placeholder="Choisir ou créer">
-          <datalist id="subcat-list"></datalist>
+          <select id="tx-souscategorie-select" onchange="handleNewOption('tx-souscategorie', this.value)"></select>
+          <input type="text" id="tx-souscategorie" placeholder="Nom de la nouvelle sous-catégorie" style="display:none;margin-top:6px;">
         </div>
         <div class="field"><label>Description / Magasin</label><input type="text" id="tx-description"></div>
         <button class="btn-primary" type="submit">Ajouter la dépense</button>
@@ -172,13 +177,18 @@
     </div>
 
     <div class="kpi-row">
-      <div class="kpi"><div class="label">Reste à dépenser</div><div class="value" id="kpi-reste-variable">0 €</div></div>
+      <div class="kpi"><div class="label">Compte frais variable Hanna</div><div class="value" id="kpi-reste-variable">0 €</div></div>
       <div class="kpi"><div class="label">Épargne potentielle</div><div class="value" id="kpi-epargne-potentielle">0 €</div></div>
     </div>
 
     <div class="card">
       <h2>Budgets par catégorie <small>dépenses variables du mois</small></h2>
       <table id="table-plafonds"><thead><tr><th>Catégorie</th><th>Dépensé</th><th>Plafond</th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div class="card">
+      <h2>Répartition des dépenses variables <small>par catégorie, mois en cours</small></h2>
+      <canvas id="chart-repartition" height="220"></canvas>
     </div>
 
     <div class="card">
@@ -235,8 +245,8 @@
       <form class="stack" onsubmit="addFraisFixe(event)">
         <div class="field">
           <label>Groupe</label>
-          <input list="groupe-list" id="ff-groupe" placeholder="Ex: HABITATION (existant ou nouveau)" required>
-          <datalist id="groupe-list"></datalist>
+          <select id="ff-groupe-select" onchange="handleNewOption('ff-groupe', this.value)"></select>
+          <input type="text" id="ff-groupe" placeholder="Nom du nouveau groupe" style="display:none;margin-top:6px;">
         </div>
         <div class="field"><label>Poste</label><input type="text" id="ff-poste" placeholder="Ex: Assurance auto" required></div>
         <div class="field"><label>Montant mensuel (€)</label><input type="number" step="0.01" id="ff-montant" required inputmode="decimal"></div>
@@ -304,13 +314,14 @@ window.addEventListener('error', function(e){
 /* ============================================================
    CONFIGURATION — remplace par l'URL de ton déploiement Apps Script
    ============================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycby40u7HoZlvJMGGW1Va9E_KWmf5ubFaPYjO1N_bk1woyXPOznCZOMkZaIEDh3evyDiwMQ/exec";
+const API_URL = "COLLE_ICI_TON_URL_APPS_SCRIPT";
 
 let PASSWORD = "";
 let DATA = null;
 let CURRENT_MOIS = "";
 let chartEpargne = null;
 let chartVariable = null;
+let chartRepartition = null;
 
 function moisActuel(){
   const d = new Date();
@@ -424,7 +435,10 @@ function renderKpis(){
   const epargnePotentielle = totalAntoine() - totalFixe() - totalExceptionnel();
   const rEl = document.getElementById("kpi-reste-variable");
   rEl.textContent = fmt(resteVariable);
-  rEl.className = "value " + (resteVariable<0 ? "neg":"pos");
+  let rClass = "pos";
+  if(resteVariable < 0) rClass = "neg";
+  else if(resteVariable <= 200) rClass = "warn";
+  rEl.className = "value " + rClass;
   const eEl = document.getElementById("kpi-epargne-potentielle");
   eEl.textContent = fmt(epargnePotentielle);
   eEl.className = "value " + (epargnePotentielle<0 ? "neg":"pos");
@@ -451,6 +465,23 @@ function renderPlafonds(){
 }
 
 function renderCharts(){
+  const depensesParCat = {};
+  DATA.transactions.forEach(t=>{ depensesParCat[t.categorie] = (depensesParCat[t.categorie]||0) + t.montant; });
+  const labelsRepartition = Object.keys(depensesParCat);
+  const valuesRepartition = labelsRepartition.map(l=>depensesParCat[l]);
+  const palette = ['#1F3864','#2E4C82','#5B84B8','#8FB0D9','#B3261E','#D97B74','#1E7F4F','#6FBF95','#B8720A','#E0A85C'];
+  const ctx0 = document.getElementById("chart-repartition");
+  if(chartRepartition) chartRepartition.destroy();
+  if(labelsRepartition.length === 0){
+    ctx0.getContext('2d').clearRect(0,0,ctx0.width,ctx0.height);
+  }else{
+    chartRepartition = new Chart(ctx0, {
+      type: 'pie',
+      data: { labels: labelsRepartition, datasets: [{ data: valuesRepartition, backgroundColor: palette }] },
+      options: { plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } } } }
+    });
+  }
+
   const ctx1 = document.getElementById("chart-epargne");
   const labels1 = DATA.epargneHistory.map(e=>e.mois);
   const values1 = DATA.epargneHistory.map(e=>e.total);
@@ -520,10 +551,29 @@ function renderFraisFixesGroupes(){
   }
 }
 
+function fillSelectWithNewOption(selectEl, values, currentTextInputId){
+  selectEl.innerHTML = '<option value="">-- Choisir --</option>' +
+    values.map(v=>`<option value="${v}">${v}</option>`).join("") +
+    '<option value="__new__">➕ Nouvelle valeur...</option>';
+  document.getElementById(currentTextInputId).style.display = "none";
+  document.getElementById(currentTextInputId).value = "";
+}
+
+function handleNewOption(textInputId, selectValue){
+  const textInput = document.getElementById(textInputId);
+  if(selectValue === "__new__"){
+    textInput.style.display = "block";
+    textInput.value = "";
+    textInput.focus();
+  }else{
+    textInput.style.display = "none";
+    textInput.value = selectValue;
+  }
+}
+
 function renderGroupeList(){
-  const dl = document.getElementById("groupe-list");
   const groupes = [...new Set(DATA.fraisFixes.map(f=>f.groupe))];
-  dl.innerHTML = groupes.map(g=>`<option value="${g}">`).join("");
+  fillSelectWithNewOption(document.getElementById("ff-groupe-select"), groupes, "ff-groupe");
 }
 
 function renderRevenusForm(){
@@ -543,13 +593,11 @@ function renderEpargneForm(){
 }
 
 function renderCategoryLists(){
-  const catList = document.getElementById("cat-list");
-  const subcatList = document.getElementById("subcat-list");
-  const filterCat = document.getElementById("filter-cat");
   const cats = [...new Set(DATA.categories.map(c=>c.categorie))];
-  catList.innerHTML = cats.map(c=>`<option value="${c}">`).join("");
   const subcats = [...new Set(DATA.categories.map(c=>c.sousCategorie).filter(Boolean))];
-  subcatList.innerHTML = subcats.map(c=>`<option value="${c}">`).join("");
+  fillSelectWithNewOption(document.getElementById("tx-categorie-select"), cats, "tx-categorie");
+  fillSelectWithNewOption(document.getElementById("tx-souscategorie-select"), subcats, "tx-souscategorie");
+  const filterCat = document.getElementById("filter-cat");
   filterCat.innerHTML = '<option value="">Toutes les catégories</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join("");
 }
 
