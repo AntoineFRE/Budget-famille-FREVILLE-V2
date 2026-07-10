@@ -124,9 +124,12 @@
   .groupe-block{margin-bottom:14px;}
   .groupe-title{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;display:flex;justify-content:space-between;}
   .groupe-block table{table-layout:fixed;width:100%;}
-  .groupe-block table td:nth-child(1){width:54%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .groupe-block table td:nth-child(2){width:32%;text-align:right;}
-  .groupe-block table td:nth-child(3){width:14%;text-align:center;}
+  .groupe-block table td:nth-child(1){width:12%;text-align:center;}
+  .groupe-block table td:nth-child(2){width:44%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .groupe-block table td:nth-child(3){width:30%;text-align:right;}
+  .inline-amount{width:100%;padding:5px 6px;border:1px solid var(--border);border-radius:5px;font-size:13px;text-align:right;font-weight:600;}
+  .groupe-block table td.ok .inline-amount{color:var(--green);border-color:var(--green);}
+  .groupe-block table td:nth-child(4){width:14%;text-align:center;}
 
   .recurring-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
   .recurring-item:last-child{border-bottom:none;}
@@ -414,7 +417,8 @@ function renderAll(){
 }
 
 function totalVariable(){ return DATA.transactions.reduce((s,t)=>s+t.montant,0); }
-function totalFixe(){ return DATA.fraisFixes.reduce((s,f)=>s+f.montant,0); }
+function totalFixe(){ return DATA.fraisFixes.filter(f=>f.pointe).reduce((s,f)=>s+f.montant,0); }
+function totalFixePrevu(){ return DATA.fraisFixes.reduce((s,f)=>s+f.montant,0); }
 function totalExceptionnel(){ return DATA.depensesExceptionnelles.reduce((s,d)=>s+d.montant,0); }
 
 function totalAntoine(){
@@ -538,11 +542,16 @@ function renderFraisFixesGroupes(){
   });
   Object.keys(groupes).forEach(g=>{
     const total = groupes[g].reduce((s,f)=>s+f.montant,0);
+    const totalPointe = groupes[g].filter(f=>f.pointe).reduce((s,f)=>s+f.montant,0);
     const block = document.createElement("div");
     block.className = "groupe-block";
-    let rows = groupes[g].map(f=>`<tr><td>${f.poste}</td><td class="amount">${fmt(f.montant)}</td>
+    let rows = groupes[g].map(f=>`<tr>
+      <td><input type="checkbox" ${f.pointe?"checked":""} onchange="togglePointe('${g.replace(/'/g,"\\'")}','${f.poste.replace(/'/g,"\\'")}',this.checked)"></td>
+      <td>${f.poste}</td>
+      <td class="${f.pointe?'ok':''}"><input type="number" step="0.01" class="inline-amount" value="${f.montant}"
+        onchange="saveMontantFraisFixe('${g.replace(/'/g,"\\'")}','${f.poste.replace(/'/g,"\\'")}',this.value)"></td>
       <td><button class="btn-small" onclick="deleteFraisFixe('${g.replace(/'/g,"\\'")}','${f.poste.replace(/'/g,"\\'")}')">✕</button></td></tr>`).join("");
-    block.innerHTML = `<div class="groupe-title"><span>${g}</span><span>${fmt(total)}</span></div>
+    block.innerHTML = `<div class="groupe-title"><span>${g}</span><span>${fmt(totalPointe)} / ${fmt(total)}</span></div>
       <table><tbody>${rows}</tbody></table>`;
     container.appendChild(block);
   });
@@ -685,6 +694,17 @@ async function addFraisFixe(ev){
 async function deleteFraisFixe(groupe, poste){
   await api("deleteFraisFixe", { mois: CURRENT_MOIS, groupe, poste });
   toast("Poste supprimé");
+  await refresh();
+}
+
+async function togglePointe(groupe, poste, pointe){
+  await api("setPointeFraisFixe", { mois: CURRENT_MOIS, groupe, poste, pointe });
+  await refresh();
+}
+
+async function saveMontantFraisFixe(groupe, poste, montant){
+  await api("setFraisFixe", { mois: CURRENT_MOIS, groupe, poste, montant });
+  toast("Montant mis à jour (et répercuté sur le mois suivant)");
   await refresh();
 }
 
