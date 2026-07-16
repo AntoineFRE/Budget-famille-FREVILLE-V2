@@ -175,6 +175,10 @@
           <input type="text" id="tx-souscategorie" placeholder="Nom de la nouvelle sous-catégorie" style="display:none;margin-top:6px;">
         </div>
         <div class="field"><label>Description / Magasin</label><input type="text" id="tx-description"></div>
+        <div class="field">
+          <label>Nombre de mensualités <small style="font-weight:400;">(paiement en plusieurs fois, même montant chaque mois)</small></label>
+          <input type="number" id="tx-mensualites" value="1" min="1" max="24" inputmode="numeric">
+        </div>
         <button class="btn-primary" type="submit">Ajouter la dépense</button>
       </form>
     </div>
@@ -435,8 +439,8 @@ function totalHanna(){
 }
 
 function renderKpis(){
-  const resteVariable = totalHanna() - totalVariable();
-  const epargnePotentielle = totalAntoine() - totalFixe() - totalExceptionnel();
+  const resteVariable = DATA.soldeCumulHanna;
+  const epargnePotentielle = DATA.soldeCumulAntoine;
   const rEl = document.getElementById("kpi-reste-variable");
   rEl.textContent = fmt(resteVariable);
   let rClass = "pos";
@@ -639,13 +643,20 @@ async function submitTransaction(ev){
   const categorie = document.getElementById("tx-categorie").value.trim();
   const sousCategorie = document.getElementById("tx-souscategorie").value.trim();
   const description = document.getElementById("tx-description").value;
+  const mensualites = parseInt(document.getElementById("tx-mensualites").value, 10) || 1;
   if(!montant || !categorie){ toast("Montant et catégorie requis"); return; }
-  await api("addTransaction", { montant, date, categorie, sousCategorie, description });
+  if(mensualites > 1){
+    await api("addTransactionRecurrente", { montant, date, categorie, sousCategorie, description, mensualites });
+    toast(mensualites + " mensualités programmées");
+  }else{
+    await api("addTransaction", { montant, date, categorie, sousCategorie, description });
+    toast("Dépense ajoutée");
+  }
   document.getElementById("tx-montant").value = "";
   document.getElementById("tx-categorie").value = "";
   document.getElementById("tx-souscategorie").value = "";
   document.getElementById("tx-description").value = "";
-  toast("Dépense ajoutée");
+  document.getElementById("tx-mensualites").value = "1";
   await refresh();
 }
 
