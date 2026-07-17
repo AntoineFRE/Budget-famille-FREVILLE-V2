@@ -265,22 +265,37 @@
   <!-- ================= REVENUS ================= -->
   <div id="tab-revenus" style="display:none;">
     <div class="card">
-      <h2>Revenus du mois</h2>
+      <h2>Revenus du mois <small>salaires fixes</small></h2>
       <form class="stack" onsubmit="submitRevenus(event)">
         <div class="field"><label>Salaire Hanna</label><input type="number" step="0.01" id="rev-hanna" inputmode="decimal"></div>
         <div class="field"><label>Salaire Antoine</label><input type="number" step="0.01" id="rev-antoine" inputmode="decimal"></div>
-        <div class="field"><label>Remboursement</label><input type="number" step="0.01" id="rev-remb" inputmode="decimal"></div>
-        <div class="field">
-          <label>Remboursement — sur quel compte ?</label>
-          <select id="rev-remb-compte"><option value="Antoine">Compte Antoine (fixes)</option><option value="Hanna">Compte Hanna (variables)</option></select>
-        </div>
-        <div class="field"><label>Autre</label><input type="number" step="0.01" id="rev-autre" inputmode="decimal"></div>
-        <div class="field">
-          <label>Autre — sur quel compte ?</label>
-          <select id="rev-autre-compte"><option value="Antoine">Compte Antoine (fixes)</option><option value="Hanna">Compte Hanna (variables)</option></select>
-        </div>
-        <button class="btn-primary" type="submit">Enregistrer les revenus</button>
+        <button class="btn-primary" type="submit">Enregistrer les salaires</button>
       </form>
+    </div>
+  </div>
+
+  <!-- ================= AUTRES REVENUS ================= -->
+  <div id="tab-autresrevenus" style="display:none;">
+    <div class="card">
+      <h2>➕ Ajouter une entrée d'argent</h2>
+      <form class="stack" onsubmit="submitAutreEntree(event)">
+        <div class="field"><label>Montant (€)</label><input type="number" step="0.01" id="ae-montant" required inputmode="decimal"></div>
+        <div class="field"><label>Date</label><input type="date" id="ae-date" required></div>
+        <div class="field">
+          <label>Type</label>
+          <select id="ae-type"><option value="Remboursement">Remboursement</option><option value="Autre">Autre</option></select>
+        </div>
+        <div class="field">
+          <label>Sur quel compte ?</label>
+          <select id="ae-compte"><option value="Antoine">Compte Antoine (fixes)</option><option value="Hanna">Compte Hanna (variables)</option></select>
+        </div>
+        <div class="field"><label>Description</label><input type="text" id="ae-description"></div>
+        <button class="btn-primary" type="submit">Ajouter l'entrée</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Entrées du mois</h2>
+      <div id="autres-entrees-list"></div>
     </div>
   </div>
 
@@ -307,6 +322,7 @@
   <button onclick="showTab('transactions', this)"><span class="icon">📋</span>Transactions</button>
   <button onclick="showTab('fraisfixes', this)"><span class="icon">📌</span>Frais fixes</button>
   <button onclick="showTab('revenus', this)"><span class="icon">💰</span>Revenus</button>
+  <button onclick="showTab('autresrevenus', this)"><span class="icon">➕</span>Autres</button>
   <button onclick="showTab('epargne', this)"><span class="icon">📈</span>Épargne</button>
 </nav>
 
@@ -383,7 +399,7 @@ async function onMoisChange(){
 function showTab(name, btn){
   document.querySelectorAll("nav.bottom button").forEach(b=>b.classList.remove("active"));
   btn.classList.add("active");
-  ["dashboard","transactions","fraisfixes","revenus","epargne"].forEach(t=>{
+  ["dashboard","transactions","fraisfixes","revenus","autresrevenus","epargne"].forEach(t=>{
     document.getElementById("tab-"+t).style.display = (t===name) ? "block":"none";
   });
   if(name==="transactions") renderTransactions();
@@ -411,12 +427,16 @@ function renderAll(){
   renderExceptionnelles();
   renderFraisFixesGroupes();
   renderRevenusForm();
+  renderAutresEntrees();
   renderEpargneForm();
   renderCategoryLists();
   renderGroupeList();
   renderTransactions();
   if(!document.getElementById("tx-date").value){
     document.getElementById("tx-date").value = new Date().toISOString().slice(0,10);
+  }
+  if(!document.getElementById("ae-date").value){
+    document.getElementById("ae-date").value = new Date().toISOString().slice(0,10);
   }
 }
 
@@ -592,10 +612,22 @@ function renderGroupeList(){
 function renderRevenusForm(){
   document.getElementById("rev-hanna").value = DATA.revenus.salaireHanna || "";
   document.getElementById("rev-antoine").value = DATA.revenus.salaireAntoine || "";
-  document.getElementById("rev-remb").value = DATA.revenus.remboursement || "";
-  document.getElementById("rev-remb-compte").value = DATA.revenus.remboursementCompte || "Antoine";
-  document.getElementById("rev-autre").value = DATA.revenus.autre || "";
-  document.getElementById("rev-autre-compte").value = DATA.revenus.autreCompte || "Antoine";
+}
+
+function renderAutresEntrees(){
+  const el = document.getElementById("autres-entrees-list");
+  el.innerHTML = "";
+  if(DATA.autresEntrees.length === 0){
+    el.innerHTML = '<p style="font-size:13px;color:var(--muted);">Aucune entrée ce mois-ci.</p>';
+    return;
+  }
+  DATA.autresEntrees.slice().sort((a,b)=>b.date.localeCompare(a.date)).forEach(e=>{
+    const div = document.createElement("div");
+    div.className = "recurring-item";
+    div.innerHTML = `<span>${e.date.split("-").reverse().join("/")} — ${e.type}${e.description?(" ("+e.description+")"):""} <span class="count">[${e.compte}]</span></span>
+      <span><strong style="color:var(--green);">+${fmt(e.montant)}</strong> <button class="btn-small" onclick="deleteAutreEntree('${e.id}')">✕</button></span>`;
+    el.appendChild(div);
+  });
 }
 
 function renderEpargneForm(){
@@ -618,13 +650,26 @@ function renderTransactions(){
   const tbody = document.querySelector("#table-transactions tbody");
   tbody.innerHTML = "";
   const filter = document.getElementById("filter-cat").value;
-  const list = DATA.transactions
+
+  const depenses = DATA.transactions
     .filter(t=>!filter || t.categorie===filter)
-    .sort((a,b)=> b.date.localeCompare(a.date));
+    .map(t=>({ date:t.date, label:t.categorie, description:t.description||"", montant:t.montant, isEntree:false, id:t.id }));
+
+  const entrees = filter ? [] : DATA.autresEntrees
+    .map(e=>({ date:e.date, label:e.type, description:e.description||"", montant:e.montant, isEntree:true, id:e.id }));
+
+  const list = [...depenses, ...entrees].sort((a,b)=> b.date.localeCompare(a.date));
+
   list.forEach(t=>{
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${t.date.split("-").reverse().join("/")}</td><td>${t.categorie}</td><td>${t.description||""}</td><td class="amount">${fmt(t.montant)}</td>
-      <td><button class="btn-small" onclick="deleteTransaction('${t.id}')">✕</button></td>`;
+    if(t.isEntree){
+      tr.innerHTML = `<td>${t.date.split("-").reverse().join("/")}</td><td>${t.label}</td><td>${t.description}</td>
+        <td class="amount" style="color:var(--green);">+${fmt(t.montant)}</td>
+        <td><button class="btn-small" onclick="deleteAutreEntree('${t.id}')">✕</button></td>`;
+    }else{
+      tr.innerHTML = `<td>${t.date.split("-").reverse().join("/")}</td><td>${t.label}</td><td>${t.description}</td><td class="amount">${fmt(t.montant)}</td>
+        <td><button class="btn-small" onclick="deleteTransaction('${t.id}')">✕</button></td>`;
+    }
     tbody.appendChild(tr);
   });
 }
@@ -665,13 +710,30 @@ async function submitRevenus(ev){
   await api("setRevenu", {
     mois: CURRENT_MOIS,
     salaireHanna: document.getElementById("rev-hanna").value || 0,
-    salaireAntoine: document.getElementById("rev-antoine").value || 0,
-    remboursement: document.getElementById("rev-remb").value || 0,
-    remboursementCompte: document.getElementById("rev-remb-compte").value,
-    autre: document.getElementById("rev-autre").value || 0,
-    autreCompte: document.getElementById("rev-autre-compte").value
+    salaireAntoine: document.getElementById("rev-antoine").value || 0
   });
-  toast("Revenus enregistrés");
+  toast("Salaires enregistrés");
+  await refresh();
+}
+
+async function submitAutreEntree(ev){
+  ev.preventDefault();
+  const montant = document.getElementById("ae-montant").value;
+  const date = document.getElementById("ae-date").value;
+  const type = document.getElementById("ae-type").value;
+  const compte = document.getElementById("ae-compte").value;
+  const description = document.getElementById("ae-description").value;
+  if(!montant){ toast("Montant requis"); return; }
+  await api("addAutreEntree", { montant, date, type, compte, description });
+  document.getElementById("ae-montant").value = "";
+  document.getElementById("ae-description").value = "";
+  toast("Entrée ajoutée");
+  await refresh();
+}
+
+async function deleteAutreEntree(id){
+  await api("deleteAutreEntree", { id });
+  toast("Entrée supprimée");
   await refresh();
 }
 
